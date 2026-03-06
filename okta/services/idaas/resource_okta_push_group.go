@@ -33,6 +33,13 @@ type pushGroupResourceModel struct {
 	DeleteTargetGroupOnDestroy types.Bool   `tfsdk:"delete_target_group_on_destroy"`
 	AppConfig                  types.Object `tfsdk:"app_config"`
 }
+var appConfigAttrTypes = map[string]attr.Type{
+	"type":               types.StringType,
+	"distinguished_name": types.StringType,
+	"group_scope":        types.StringType,
+	"group_type":         types.StringType,
+	"sam_account_name":   types.StringType,
+}
 
 type pushGroupResource struct {
 	config *config.Config
@@ -111,13 +118,7 @@ func (r *pushGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Optional:    true,
 				Computed:    false,
 				Description: "Additional app configuration for group push mappings. Currently only required for Active Directory.",
-				AttributeTypes: map[string]attr.Type{
-					"type":               types.StringType,
-					"distinguished_name": types.StringType,
-					"group_scope":        types.StringType,
-					"group_type":         types.StringType,
-					"sam_account_name":   types.StringType,
-				},
+				AttributeTypes: appConfigAttrTypes,
 				PlanModifiers: []planmodifier.Object{
 					objectplanmodifier.UseStateForUnknown(),
 					objectplanmodifier.RequiresReplace(),
@@ -367,30 +368,17 @@ func mapPushGroupResourceToState(groupPushMapping *v6okta.GroupPushMapping, stat
 		}
 
 		// Map camelCase additional properties back to underscore attributes
-		camelToUnderscore := map[string]string{
-			"distinguishedName": "distinguished_name",
-			"groupScope":        "group_scope",
-			"groupType":         "group_type",
-			"samAccountName":    "sam_account_name",
-		}
-		for camelKey, underscoreKey := range camelToUnderscore {
-			if val, ok := apiAppConfig.AdditionalProperties[camelKey]; ok {
-				if strVal, ok := val.(string); ok {
-					appConfigAttrs[underscoreKey] = types.StringValue(strVal)
-				}
+		for camelKey, val := range apiAppConfig.AdditionalProperties {
+			underscoreKey := utils.CamelCaseToUnderscore(camelKey)
+			if _, exists := appConfigAttrs[underscoreKey]; !exists {
+				continue
+			}
+			if strVal, ok := val.(string); ok {
+				appConfigAttrs[underscoreKey] = types.StringValue(strVal)
 			}
 		}
 
-		appConfigObj, objDiags := types.ObjectValue(
-			map[string]attr.Type{
-				"type":               types.StringType,
-				"distinguished_name": types.StringType,
-				"group_scope":        types.StringType,
-				"group_type":         types.StringType,
-				"sam_account_name":   types.StringType,
-			},
-			appConfigAttrs,
-		)
+		appConfigObj, objDiags := types.ObjectValue(appConfigAttrTypes, appConfigAttrs)
 		diags.Append(objDiags...)
 		state.AppConfig = appConfigObj
 	}
