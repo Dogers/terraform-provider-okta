@@ -346,6 +346,11 @@ func mapPushGroupResourceToState(groupPushMapping *v6okta.GroupPushMapping, stat
 	state.TargetGroupId = types.StringPointerValue(groupPushMapping.TargetGroupId)
 	state.Status = types.StringPointerValue(groupPushMapping.Status)
 
+	// Ensure delete_target_group_on_destroy has a value in state (provider-only attribute, not returned by API)
+	if state.DeleteTargetGroupOnDestroy.IsNull() || state.DeleteTargetGroupOnDestroy.IsUnknown() {
+		state.DeleteTargetGroupOnDestroy = types.BoolValue(true)
+	}
+
 	// Preserve app_config in state from the API response
 	if groupPushMapping.HasAppConfig() {
 		apiAppConfig := groupPushMapping.GetAppConfig()
