@@ -336,6 +336,7 @@ func (r *pushGroupResource) ImportState(ctx context.Context, req resource.Import
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("app_id"), appId)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), mappingId)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("delete_target_group_on_destroy"), true)...)
 }
 
 func mapPushGroupResourceToState(groupPushMapping *v6okta.GroupPushMapping, state *pushGroupResourceModel) diag.Diagnostics {
